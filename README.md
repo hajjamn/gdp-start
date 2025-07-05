@@ -1,55 +1,55 @@
+
 # GDP Laravel Start – Template base per progetti Laravel gestionali
 
-Questo repository rappresenta il punto di partenza per progetti Laravel sviluppati da **Generazione Digitale**.  
-È configurato per:
+This repository is a starting template for Laravel projects created by **Generazione Digitale**.  
+It is pre-configured with:
 
--   Laravel 11 + Breeze (autenticazione base)
--   Bootstrap 5 + FontAwesome (via Vite)
--   Vite per asset e SCSS
--   Spatie Laravel Permissions per la gestione dei ruoli
--   Routing separato per area autenticata (`/admin`)
+- Laravel 11 + Breeze (basic authentication)
+- Bootstrap 5 + FontAwesome (via Vite)
+- Vite for asset bundling and SCSS
+- Spatie Laravel Permissions for role management
+- Authenticated area routing under `/admin`
+- Optional deployment to a subfolder with `Route::prefix()`
 
 ---
 
-## 📁 Architettura del progetto
+## 📁 Project Architecture
 
 ```
 app/
 ├── Http/
 │   ├── Controllers/
-│   │   ├── Auth/                 ← Controller Breeze
-│   │   └── Admin/               ← Controller loggati/protetti
+│   │   ├── Auth/                 ← Breeze Controllers
+│   │   └── Admin/               ← Authenticated area Controllers
 │
 resources/
 └── views/
-    ├── admin/                   ← Viste per utenti loggati
+    ├── admin/                   ← Views for logged-in users
     │   └── dashboard.blade.php
-    └── auth/                    ← Viste Breeze (login, register, ecc.)
+    └── auth/                    ← Breeze Views (login, register, etc.)
 ```
 
 ---
 
-## 🧩 Aggiungere una nuova entità (es. `Example`)
+## 🧩 Adding a new Entity (e.g. `Example`)
 
-### 1. Creare il Model, Migration, Seeder e Factory
+### 1. Create the model, migration, seeder and factory
 
 ```bash
 php artisan make:model Example -a
 ```
 
-### 2. Spostare il controller generato
+### 2. Replace the controller
 
 ```bash
 php artisan make:controller Admin/ExampleController -r --model=Example
 ```
 
-> Puoi eliminare il controller `ExampleController` creato precedentemente nella root.
+> You may delete the automatically generated controller in the main Controllers folder.
 
----
+### 3. Register the routes in `routes/web.php`
 
-### 3. Definire le rotte protette in `routes/web.php`
-
-All’interno del gruppo `/admin` (protetto da `auth` e `verified`):
+Under the `/admin` group:
 
 ```php
 use App\Http\Controllers\Admin\ExampleController;
@@ -57,51 +57,33 @@ use App\Http\Controllers\Admin\ExampleController;
 Route::resource('examples', ExampleController::class);
 ```
 
-> Assicurati che l'import sia presente in cima al file.
+> Ensure the controller is imported at the top.
 
----
-
-### 4. Creare la migration e modificarla con i campi corretti
-
-Poi eseguire:
+### 4. Edit the migration and run:
 
 ```bash
 php artisan migrate
 ```
 
----
-
-### 5. Popolare lo seeder (opzionale)
-
-Modifica `ExampleSeeder.php` come segue:
+### 5. Fill the seeder (optional)
 
 ```php
 use Faker\Generator as Faker;
 
 public function run(Faker $faker): void {
-    // esempio:
     \App\Models\Example::factory()->count(10)->create();
 }
 ```
-
-E lancialo:
 
 ```bash
 php artisan db:seed --class=ExampleSeeder
 ```
 
----
+### 6. Create views
 
-### 6. Creare la vista
+Add: `resources/views/admin/examples/index.blade.php`
 
-Crea una cartella `resources/views/admin/examples/`  
-Al suo interno aggiungi ad esempio: `index.blade.php`
-
----
-
-### 7. Modificare il controller
-
-Nel metodo `index()` scrivi:
+### 7. Modify the controller
 
 ```php
 public function index()
@@ -113,9 +95,9 @@ public function index()
 
 ---
 
-## 🔐 Gestione Ruoli con Spatie
+## 🔐 Role Management (Spatie)
 
-### Installazione (se non già fatto)
+Install (if not yet done):
 
 ```bash
 composer require spatie/laravel-permission
@@ -124,7 +106,7 @@ php artisan vendor:publish --tag="permission-migrations"
 php artisan migrate
 ```
 
-Aggiungi `HasRoles` al model User:
+In `User.php`:
 
 ```php
 use Spatie\Permission\Traits\HasRoles;
@@ -132,11 +114,10 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     use HasRoles;
-    // ...
 }
 ```
 
-Ora puoi usare:
+Usage:
 
 ```php
 $user->assignRole('admin');
@@ -145,55 +126,49 @@ $user->hasRole('staff');
 
 ---
 
-## ⚙️ Note di configurazione
+## ⚙️ Project Configuration Notes
 
--   App name: viene preso da `.env` → `APP_NAME`
--   Favicon: da `public/favicon.ico`
--   Logo navbar: da `public/img/nav-logo.png`
--   Tutte le pagine dopo il login sono sotto `admin/`
+- `APP_NAME` is read from `.env`
+- `favicon.ico` must be in `public/`
+- Navbar logo is located at `public/img/nav-logo.png`
+- All post-login pages live under `/admin`
 
 ---
 
-## 📦 Comandi utili
+## 🌍 Subfolder Hosting – Route Prefixing
+
+If deploying under a subfolder like:
+
+```
+https://generazionedigitaleprogrammi.com/gdp-template/
+```
+
+You must wrap all routes in `routes/web.php` inside:
+
+```php
+Route::prefix('gdp-template')->group(function () {
+    // your routes here (including /admin group, auth, etc.)
+});
+```
+
+This ensures paths are correctly resolved when Laravel is hosted under a non-root folder.
+
+---
+
+## 📦 First Setup
 
 ```bash
-# Primo avvio
 composer install
 npm install
 cp .env.example .env
 php artisan key:generate
-
-# Build e avvio vite
 npm run dev
-
-# Avvio server
 php artisan serve
 ```
 
-# 🌐 Deployment Instructions – GDP Template
-
-## ✅ Configure Vite Base Path
-
-If your Laravel app is served from a subdirectory (e.g. `example.com/myapp/`), you must configure Vite to correctly resolve assets:
-
-1. Open your `.env` file
-2. Add or update the `VITE_APP_BASE` variable:
-
-```env
-VITE_APP_BASE=/myapp/
-```
-
-3. Ensure your `vite.config.js` contains:
-
-```js
-base: process.env.VITE_APP_BASE || '/',
-```
-
-> 📦 `VITE_APP_BASE` is automatically read by Vite when prefixed with `VITE_`.
-
 ---
 
-## 📦 SSH + VPS Deployment Setup
+## 🚀 Deployment Guide (NGINX + VPS)
 
 ### 1. SSH into your server
 
@@ -201,43 +176,29 @@ base: process.env.VITE_APP_BASE || '/',
 ssh root@your-server-ip
 ```
 
-> Replace `your-server-ip` with the actual VPS IP address (e.g. `91.123.45.67`).
-
----
-
-### 2. Create folder inside `/var/www/`
+### 2. Prepare project folder
 
 ```bash
 cd /var/www/
-mkdir -p generazionedigitaleprogrammi/myapp
+mkdir -p generazionedigitaleprogrammi/gdp-template
 ```
 
-Copy or deploy your Laravel app inside that path (e.g. via `git clone` or `scp`).
+Deploy your Laravel app inside this directory.
 
----
+### 3. NGINX Config
 
-### 3. NGINX Configuration
-
-Create a new NGINX config file inside:
-
-```bash
-/etc/nginx/sites-available/
-```
-
-Example: `/etc/nginx/sites-available/myapp.com`
-
-Paste this example config:
+Create `/etc/nginx/sites-available/gdp-template.com` with:
 
 ```nginx
 server {
     listen 443 ssl;
-    server_name myapp.generazionedigitaleprogrammi.com;
+    server_name gdp-template.generazionedigitaleprogrammi.com;
 
-    root /var/www/generazionedigitaleprogrammi/myapp/public;
+    root /var/www/generazionedigitaleprogrammi/gdp-template/public;
     index index.php index.html;
 
-    ssl_certificate /etc/letsencrypt/live/myapp.generazionedigitaleprogrammi.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/myapp.generazionedigitaleprogrammi.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/gdp-template.generazionedigitaleprogrammi.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/gdp-template.generazionedigitaleprogrammi.com/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
@@ -259,53 +220,37 @@ server {
     location = /favicon.ico { access_log off; log_not_found off; }
     location = /robots.txt  { access_log off; log_not_found off; }
 
-    access_log /var/log/nginx/myapp_access.log;
-    error_log  /var/log/nginx/myapp_error.log;
+    access_log /var/log/nginx/gdp-template_access.log;
+    error_log  /var/log/nginx/gdp-template_error.log;
 }
 
-# HTTP to HTTPS redirect
 server {
     listen 80;
-    server_name myapp.generazionedigitaleprogrammi.com;
+    server_name gdp-template.generazionedigitaleprogrammi.com;
     return 301 https://$host$request_uri;
 }
 ```
 
----
-
-### 4. Enable the NGINX site
+Enable the site:
 
 ```bash
-ln -s /etc/nginx/sites-available/myapp.com /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/gdp-template.com /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 ```
 
----
-
-### 5. Generate SSL (only once per domain)
-
-Install Certbot if not yet installed:
+Generate SSL:
 
 ```bash
 apt install certbot python3-certbot-nginx
+certbot --nginx -d gdp-template.generazionedigitaleprogrammi.com
 ```
 
-Run Certbot:
+### 4. Laravel Post Deploy
 
 ```bash
-certbot --nginx -d myapp.generazionedigitaleprogrammi.com
-```
-
----
-
-## 🛠 Laravel Post-Deployment Setup
-
-After uploading the Laravel project:
-
-```bash
-cd /var/www/generazionedigitaleprogrammi/myapp
+cd /var/www/generazionedigitaleprogrammi/gdp-template
 cp .env.example .env
-nano .env   # <- set DB config, VITE_APP_BASE, APP_URL, etc.
+nano .env  # update DB, APP_URL, VITE_APP_BASE
 php artisan key:generate
 composer install
 npm install && npm run build
@@ -316,9 +261,9 @@ php artisan route:cache
 
 ---
 
-## 📄 Notes
+## 📄 Final Notes
 
--   Ensure `public/` is the root in NGINX, **not** the Laravel base path.
--   Make sure `APP_URL` and `VITE_APP_BASE` match the actual served subpath.
--   Laravel logs will go in `storage/logs/`
--   You may need to `chown -R www-data:www-data .` after deploy.
+- Always set `APP_URL` and `VITE_APP_BASE` properly for subfolder hosting.
+- `public/` is the correct root for NGINX.
+- Laravel logs: `storage/logs/`
+- Set ownership: `chown -R www-data:www-data .`

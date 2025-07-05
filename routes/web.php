@@ -8,34 +8,36 @@ use Illuminate\Support\Facades\Route;
 | Web Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
+| Le rotte sono tutte incapsulate nel prefisso "gdp-template", così da
+| poter essere raggiunte da URL come:
+| https://generazionedigitaleprogrammi.com/gdp-template/
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::prefix('gdp-template')->group(function () {
 
-Route::middleware(['auth', 'verified'])
-    ->name('admin.')
-    ->prefix('admin')
-    ->group(function () {
-
-        Route::get('/', function () {
-            return view('admin.dashboard');
-        })->name('dashboard');
-
-        //register all other protected routes
-        //CRUD POSTS
-    
+    Route::get('/', function () {
+        return view('welcome');
     });
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
+    Route::middleware(['auth', 'verified'])
+        ->name('admin.')
+        ->prefix('admin')
+        ->group(function () {
 
-require __DIR__ . '/auth.php';
+            Route::get('/', function () {
+                return view('admin.dashboard');
+            })->name('dashboard');
+
+            // Register all other protected routes
+            // CRUD EXAMPLES, etc.
+        });
+
+    Route::middleware('auth')->group(function () {
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    });
+
+    require __DIR__ . '/auth.php';
+});
