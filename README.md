@@ -3,11 +3,11 @@
 Questo repository rappresenta il punto di partenza per progetti Laravel sviluppati da **Generazione Digitale**.  
 È configurato per:
 
-- Laravel 11 + Breeze (autenticazione base)
-- Bootstrap 5 + FontAwesome (via Vite)
-- Vite per asset e SCSS
-- Spatie Laravel Permissions per la gestione dei ruoli
-- Routing separato per area autenticata (`/admin`)
+-   Laravel 11 + Breeze (autenticazione base)
+-   Bootstrap 5 + FontAwesome (via Vite)
+-   Vite per asset e SCSS
+-   Spatie Laravel Permissions per la gestione dei ruoli
+-   Routing separato per area autenticata (`/admin`)
 
 ---
 
@@ -32,11 +32,13 @@ resources/
 ## 🧩 Aggiungere una nuova entità (es. `Example`)
 
 ### 1. Creare il Model, Migration, Seeder e Factory
+
 ```bash
 php artisan make:model Example -a
 ```
 
 ### 2. Spostare il controller generato
+
 ```bash
 php artisan make:controller Admin/ExampleController -r --model=Example
 ```
@@ -62,6 +64,7 @@ Route::resource('examples', ExampleController::class);
 ### 4. Creare la migration e modificarla con i campi corretti
 
 Poi eseguire:
+
 ```bash
 php artisan migrate
 ```
@@ -82,6 +85,7 @@ public function run(Faker $faker): void {
 ```
 
 E lancialo:
+
 ```bash
 php artisan db:seed --class=ExampleSeeder
 ```
@@ -133,6 +137,7 @@ class User extends Authenticatable
 ```
 
 Ora puoi usare:
+
 ```php
 $user->assignRole('admin');
 $user->hasRole('staff');
@@ -142,10 +147,10 @@ $user->hasRole('staff');
 
 ## ⚙️ Note di configurazione
 
-- App name: viene preso da `.env` → `APP_NAME`
-- Favicon: da `public/favicon.ico`
-- Logo navbar: da `public/img/nav-logo.png`
-- Tutte le pagine dopo il login sono sotto `admin/`
+-   App name: viene preso da `.env` → `APP_NAME`
+-   Favicon: da `public/favicon.ico`
+-   Logo navbar: da `public/img/nav-logo.png`
+-   Tutte le pagine dopo il login sono sotto `admin/`
 
 ---
 
@@ -164,3 +169,156 @@ npm run dev
 # Avvio server
 php artisan serve
 ```
+
+# 🌐 Deployment Instructions – GDP Template
+
+## ✅ Configure Vite Base Path
+
+If your Laravel app is served from a subdirectory (e.g. `example.com/myapp/`), you must configure Vite to correctly resolve assets:
+
+1. Open your `.env` file
+2. Add or update the `VITE_APP_BASE` variable:
+
+```env
+VITE_APP_BASE=/myapp/
+```
+
+3. Ensure your `vite.config.js` contains:
+
+```js
+base: process.env.VITE_APP_BASE || '/',
+```
+
+> 📦 `VITE_APP_BASE` is automatically read by Vite when prefixed with `VITE_`.
+
+---
+
+## 📦 SSH + VPS Deployment Setup
+
+### 1. SSH into your server
+
+```bash
+ssh root@your-server-ip
+```
+
+> Replace `your-server-ip` with the actual VPS IP address (e.g. `91.123.45.67`).
+
+---
+
+### 2. Create folder inside `/var/www/`
+
+```bash
+cd /var/www/
+mkdir -p generazionedigitaleprogrammi/myapp
+```
+
+Copy or deploy your Laravel app inside that path (e.g. via `git clone` or `scp`).
+
+---
+
+### 3. NGINX Configuration
+
+Create a new NGINX config file inside:
+
+```bash
+/etc/nginx/sites-available/
+```
+
+Example: `/etc/nginx/sites-available/myapp.com`
+
+Paste this example config:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name myapp.generazionedigitaleprogrammi.com;
+
+    root /var/www/generazionedigitaleprogrammi/myapp/public;
+    index index.php index.html;
+
+    ssl_certificate /etc/letsencrypt/live/myapp.generazionedigitaleprogrammi.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/myapp.generazionedigitaleprogrammi.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\. {
+        deny all;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    access_log /var/log/nginx/myapp_access.log;
+    error_log  /var/log/nginx/myapp_error.log;
+}
+
+# HTTP to HTTPS redirect
+server {
+    listen 80;
+    server_name myapp.generazionedigitaleprogrammi.com;
+    return 301 https://$host$request_uri;
+}
+```
+
+---
+
+### 4. Enable the NGINX site
+
+```bash
+ln -s /etc/nginx/sites-available/myapp.com /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+```
+
+---
+
+### 5. Generate SSL (only once per domain)
+
+Install Certbot if not yet installed:
+
+```bash
+apt install certbot python3-certbot-nginx
+```
+
+Run Certbot:
+
+```bash
+certbot --nginx -d myapp.generazionedigitaleprogrammi.com
+```
+
+---
+
+## 🛠 Laravel Post-Deployment Setup
+
+After uploading the Laravel project:
+
+```bash
+cd /var/www/generazionedigitaleprogrammi/myapp
+cp .env.example .env
+nano .env   # <- set DB config, VITE_APP_BASE, APP_URL, etc.
+php artisan key:generate
+composer install
+npm install && npm run build
+php artisan migrate --seed
+php artisan config:cache
+php artisan route:cache
+```
+
+---
+
+## 📄 Notes
+
+-   Ensure `public/` is the root in NGINX, **not** the Laravel base path.
+-   Make sure `APP_URL` and `VITE_APP_BASE` match the actual served subpath.
+-   Laravel logs will go in `storage/logs/`
+-   You may need to `chown -R www-data:www-data .` after deploy.

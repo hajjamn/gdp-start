@@ -5,6 +5,7 @@ import laravel from 'laravel-vite-plugin';
 const path = require('path') // <-- require path from node
 
 export default defineConfig({
+    base: process.env.VITE_APP_BASE || '/',
     plugins: [
         laravel({
             // edit the first value of the array input to point to our new sass files and folder.
